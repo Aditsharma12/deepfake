@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+torch
+torchvision
+opencv-python
+numpy
+facenet-pytorch
+albumentations
+einops
+tqdm
+decord
+python-multipart

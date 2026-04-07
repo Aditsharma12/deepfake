@@ -1,0 +1,5 @@
+weight/
+uploads/
+__pycache__/
+*.pth
+*.mp4
