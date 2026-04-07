@@ -1,20 +1,42 @@
 import torch
 import cv2
 import numpy as np
+import os
+import urllib.request
 from model.pred_func import load_cvit
 from facenet_pytorch import MTCNN
 
-MODEL_NAME = "cvit2"
-WEIGHT = "weight/cvit2_deepfake_detection_ep_50.pth"
+# -------------------------
+# 🔥 AUTO DOWNLOAD MODEL
+# -------------------------
+MODEL_URL = "https://huggingface.co/datasets/Deressa/cvit/resolve/main/cvit2_deepfake_detection_ep_50.pth"
+WEIGHT_PATH = "weight/cvit2_deepfake_detection_ep_50.pth"
 
+def download_weights():
+    os.makedirs("weight", exist_ok=True)
+    if not os.path.exists(WEIGHT_PATH):
+        print("⬇️ Downloading model (~1GB)... please wait")
+        urllib.request.urlretrieve(MODEL_URL, WEIGHT_PATH)
+        print("✅ Download complete!")
+
+download_weights()
+
+# -------------------------
+# MODEL LOAD
+# -------------------------
+MODEL_NAME = "cvit2"
 device = torch.device("cpu")
 
-model = load_cvit(WEIGHT, MODEL_NAME, fp16=False)
+model = load_cvit(WEIGHT_PATH, MODEL_NAME, fp16=False)
 model.eval()
 
+# Face detector
 mtcnn = MTCNN(keep_all=True, device=device)
 
 
+# -------------------------
+# FRAME EXTRACTION
+# -------------------------
 def extract_frames(video_path, num_frames=15):
     cap = cv2.VideoCapture(video_path)
     frames = []
@@ -33,6 +55,9 @@ def extract_frames(video_path, num_frames=15):
     return frames
 
 
+# -------------------------
+# FACE PREPROCESS
+# -------------------------
 def preprocess_faces(frames):
     faces = []
 
@@ -44,12 +69,19 @@ def preprocess_faces(frames):
             for box in boxes:
                 x1, y1, x2, y2 = map(int, box)
                 face = rgb[y1:y2, x1:x2]
+
+                if face.size == 0:
+                    continue
+
                 face = cv2.resize(face, (224, 224))
                 faces.append(face)
 
     return faces
 
 
+# -------------------------
+# PREDICTION
+# -------------------------
 def predict_single(video_path):
     frames = extract_frames(video_path)
     faces = preprocess_faces(frames)
